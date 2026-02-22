@@ -7,11 +7,13 @@ tagline = "QuadGrab"
 maintainer = "LKS <Liam@lksgraphics.ca>"
 type = "add-on"
 website = "https://github.com/LiamSmyth/LKS_QuadGrab"
+license = ["SPDX:GPL-2.0-or-later"]
+blender_version_min = "4.2.0"
 
 [permissions]
-network = false
-files = true
-clipboard = false
+network = "Need network access to download dependencies"
+files = "Need file access to save textures"
+clipboard = "Need clipboard access to copy paths"
 
 [build]
 paths = [
