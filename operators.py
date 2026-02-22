@@ -15,10 +15,20 @@ CLIP_START = 0.01
 
 
 def build_comp_graph(timestamp: str):
-    # Enable compositor nodes if not already enabled (Blender 4.2 requirement)
-    if not bpy.context.scene.use_nodes:
-        bpy.context.scene.use_nodes = True
-    compgraph: bpy.types.CompositorNodeTree = bpy.context.scene.node_tree
+    scene = bpy.context.scene
+    # Blender 5.0+ removed scene.node_tree / scene.use_nodes in favour of
+    # scene.compositing_node_group / scene.render.use_compositing.
+    if hasattr(scene, 'compositing_node_group'):
+        # Blender 5.0+
+        scene.render.use_compositing = True
+        compgraph: bpy.types.CompositorNodeTree = scene.compositing_node_group
+    else:
+        # Blender 4.x
+        if not scene.use_nodes:
+            scene.use_nodes = True
+        compgraph = scene.node_tree
+    if compgraph is None:
+        raise RuntimeError("LKS QuadGrab: compositor node tree is None after enabling compositing.")
     for compnode in compgraph.nodes:
         compgraph.nodes.remove(compnode)
 
