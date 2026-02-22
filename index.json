@@ -1,0 +1,28 @@
+{
+  "version": "v1",
+  "blocklist": [],
+  "data": [
+    {
+      "schema_version": "1.0.0",
+      "id": "lks_quadgrab",
+      "name": "LKS QuadGrab",
+      "tagline": "QuadGrab",
+      "version": "1.1.0",
+      "type": "add-on",
+      "maintainer": "LKS <Liam@lksgraphics.ca>",
+      "license": [
+        "SPDX-License-Identifier: GPL-2.0-or-later"
+      ],
+      "blender_version_min": "4.2.0",
+      "website": "https://github.com/LiamSmyth/LKS_QuadGrab",
+      "permissions": {
+        "network": "Need network access to download dependencies",
+        "files": "Need file access to save textures",
+        "clipboard": "Need clipboard access to copy paths"
+      },
+      "archive_url": "./lks_quadgrab-1.1.0.zip",
+      "archive_size": 8313,
+      "archive_hash": "sha256:c4c68cc381578803aa06d2aff730ab2457ec420346a495e59d28c2f49eec0dd9"
+    }
+  ]
+}
