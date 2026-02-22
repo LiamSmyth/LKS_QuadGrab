@@ -1,0 +1,35 @@
+# Runtime dependencies for this project
+# Add runtime (and development-test) dependencies below. 
+# The project's bootstrap `install.bat` will install these in `.venv`.
+
+# Core utilities
+requests>=2.30.0
+
+# GUI framework (modern tkinter styling)
+ttkbootstrap>=1.10.1
+
+# Testing
+pytest>=7.0.0
+pytest-timeout>=2.2.0  # Prevents infinite loops from hanging test runs
+
+# Add additional project-specific dependencies below
+
+
+# =============================================================================
+# EXTERNAL SHARED REPOS (Local pip-installable packages)
+# =============================================================================
+# External repos with pyproject.toml can be installed as editable packages.
+# Use -e for editable installs (changes in the external repo are picked up).
+#
+# Uncomment and customize paths as needed:
+#
+# -e C:/path/to/shared-utils
+# -e C:/path/to/another-shared-repo
+#
+# Or install from git:
+# -e git+https://github.com/org/shared-utils.git#egg=shared_utils
+#
+# See .github/instructions/copilot_external_deps.instructions.md for:
+# - Registered external repos and what they provide
+# - Decision tree: use existing vs. contribute upstream
+# =============================================================================

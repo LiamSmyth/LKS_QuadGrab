@@ -1,0 +1,22 @@
+schema_version = "1.0.0"
+
+id = "lks_quadgrab"
+version = "1.1.0"
+name = "LKS QuadGrab"
+tagline = "QuadGrab"
+maintainer = "LKS <Liam@lksgraphics.ca>"
+type = "add-on"
+
+[permissions]
+network = false
+files = true
+clipboard = false
+
+[build]
+paths = [
+    "__init__.py",
+    "operators.py",
+    "properties.py",
+    "register_quadgrab.py",
+    "ui.py",
+]
