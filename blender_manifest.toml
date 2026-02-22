@@ -6,6 +6,7 @@ name = "LKS QuadGrab"
 tagline = "QuadGrab"
 maintainer = "LKS <Liam@lksgraphics.ca>"
 type = "add-on"
+website = "https://github.com/LiamSmyth/LKS_QuadGrab"
 
 [permissions]
 network = false
