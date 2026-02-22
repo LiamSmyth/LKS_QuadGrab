@@ -11,7 +11,7 @@
       "type": "add-on",
       "maintainer": "LKS <Liam@lksgraphics.ca>",
       "license": [
-        "SPDX-License-Identifier: GPL-2.0-or-later"
+        "SPDX:GPL-2.0-or-later"
       ],
       "blender_version_min": "4.2.0",
       "website": "https://github.com/LiamSmyth/LKS_QuadGrab",
@@ -21,8 +21,8 @@
         "clipboard": "Need clipboard access to copy paths"
       },
       "archive_url": "./lks_quadgrab-1.1.0.zip",
-      "archive_size": 8313,
-      "archive_hash": "sha256:c4c68cc381578803aa06d2aff730ab2457ec420346a495e59d28c2f49eec0dd9"
+      "archive_size": 8301,
+      "archive_hash": "sha256:db5b0613c036f038fceb804529f631e01b96d6d994702162b93cec745a9420a8"
     }
   ]
 }
