@@ -18,8 +18,10 @@ clipboard = "Need clipboard access to copy paths"
 [build]
 paths = [
     "__init__.py",
-    "operators.py",
+    "overlay.py",
     "properties.py",
     "register_quadgrab.py",
     "ui.py",
+    "ops/",
+    "util/",
 ]
