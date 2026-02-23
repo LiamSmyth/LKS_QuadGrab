@@ -2,10 +2,10 @@
 <img width="1665" height="864" alt="image" src="https://github.com/user-attachments/assets/f97fc6c0-a880-4d2c-8889-60d20247cb67" />
 
 LKS QuadGrab is a Blender add-on that allows you to use a quad (mesh object) as a reference plane to capture textures from the scene. It simplifies the process of baking textures from complex geometry onto a simple plane, and includes boilerplate for setting up a preview material and modifier stack with the baked textures.
+This was written for Blender 5.1 after a bunch of api updates, I probably wouldn't try to use it in a version of blender before 5.0
 
 Here's a demo of what it's for and how to use it
-[youtube.com/watch?v=Y562RmPBJwI&feature=youtu.be
-](https://www.youtube.com/watch?v=Y562RmPBJwI)
+https://youtu.be/Y562RmPBJwI
 
 ## Installation
 
