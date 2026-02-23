@@ -48,6 +48,13 @@ class OBJECT_OT_lks_quad_grab(bpy.types.Operator):
         scene: bpy.types.Scene = context.scene
         vl: bpy.types.ViewLayer = context.view_layer
 
+        # Snapshot selection so we can restore it after the render completes.
+        prev_selected: list[str] = [o.name for o in context.selected_objects]
+        _prev_active_obj: bpy.types.Object | None = context.view_layer.objects.active
+        prev_active: str | None = (
+            _prev_active_obj.name if _prev_active_obj is not None else None
+        )
+
         timestamp: str = ""
         if getattr(scene, properties.PROP_USE_TIMESTAMP):
             timestamp = time.strftime("%H-%M-%S") + "_"
@@ -80,25 +87,34 @@ class OBJECT_OT_lks_quad_grab(bpy.types.Operator):
             Uses ``obj.matrix_world`` so that location, rotation **and scale**
             are all accounted for.
             """
-            ws_min = Vector((math.inf, math.inf, math.inf))
-            ws_max = Vector((-math.inf, -math.inf, -math.inf))
-            for corner in obj.bound_box:
-                world_pt: Vector = obj.matrix_world @ Vector(corner)
-                ws_min.x = min(ws_min.x, world_pt.x)
-                ws_min.y = min(ws_min.y, world_pt.y)
-                ws_min.z = min(ws_min.z, world_pt.z)
-                ws_max.x = max(ws_max.x, world_pt.x)
-                ws_max.y = max(ws_max.y, world_pt.y)
-                ws_max.z = max(ws_max.z, world_pt.z)
+            # Measure extents in the plane's LOCAL axes (× object scale) so
+            # that the ortho_scale equals the plane's actual dimensions.
+            # Using the world-space AABB here would be wrong: a rotated
+            # plane's AABB is always larger than the plane itself, which
+            # would make the camera see more than the plane and cause the
+            # rendered content to appear zoomed-out / preview plane smaller.
+            local_corners = [Vector(c) for c in obj.bound_box]
+            obj_scale: Vector = obj.matrix_world.to_scale()
+            extent_local_x: float = (
+                max(c.x for c in local_corners) -
+                min(c.x for c in local_corners)
+            ) * abs(obj_scale.x)
+            extent_local_y: float = (
+                max(c.y for c in local_corners) -
+                min(c.y for c in local_corners)
+            ) * abs(obj_scale.y)
 
-            centroid: Vector = (ws_min + ws_max) / 2.0
-            extents: Vector = ws_max - ws_min
+            # Camera origin = the plane's world-space pivot exactly.
+            # No clip buffer is added here; the fit margin on the plane
+            # extends the capture volume past the mesh on all sides so
+            # no geometry is clipped by the near plane.
+            centroid: Vector = obj.matrix_world.translation.copy()
 
             cam: bpy.types.Camera = bpy.data.cameras.new(
                 name="LKS QuadGrab Cam")
             cam_obj: bpy.types.Object = bpy.data.objects.new(
                 "LKS QuadGrab Cam Obj", cam)
-            cam.ortho_scale = max(extents.x, extents.y, 0.01)
+            cam.ortho_scale = max(extent_local_x, extent_local_y, 0.01)
             cam.type = 'ORTHO'
             cam_obj.location = centroid
             cam_obj.rotation_euler = obj.rotation_euler
@@ -238,7 +254,6 @@ class OBJECT_OT_lks_quad_grab(bpy.types.Operator):
                 location=cam_location_snap, rotation=cam_rotation_snap, size=cam_ortho_scale_snap)
             ob_grid: bpy.types.Object = bpy.context.view_layer.objects.active
             ob_grid.hide_render = True
-            ob_grid.show_wire = True
             if hasattr(ob_grid, 'display'):
                 ob_grid.display.show_shadows = False
             ob_grid.name = "QuadGrab Preview Plane"
@@ -381,5 +396,18 @@ class OBJECT_OT_lks_quad_grab(bpy.types.Operator):
             if getattr(scene, properties.PROP_USE_PBR):
                 preview_mat: bpy.types.Material = add_preview_mat()
                 preview_plane.active_material = preview_mat
+
+        # Restore the selection that was active when the user clicked QuadGrab.
+        for obj in list(context.selected_objects):
+            obj.select_set(False)
+        for name in prev_selected:
+            obj = bpy.data.objects.get(name)
+            if obj is not None:
+                obj.select_set(True)
+        if prev_active is not None:
+            restored: bpy.types.Object | None = bpy.data.objects.get(
+                prev_active)
+            if restored is not None:
+                context.view_layer.objects.active = restored
 
         return {'FINISHED'}

@@ -10,7 +10,7 @@ from __future__ import annotations
 import math
 
 import bpy
-from mathutils import Vector
+from mathutils import Euler, Matrix, Quaternion, Vector
 
 from .. import properties
 
@@ -45,11 +45,29 @@ class OBJECT_OT_lks_quad_grab_fit_to_selection(bpy.types.Operator):
         scene: bpy.types.Scene = context.scene
         plane: bpy.types.Object = bpy.data.objects.get(_PLANE_NAME)
 
-        # Preserve the plane's current rotation for the rebuilt plane.
-        stored_rotation: bpy.types.Euler = plane.rotation_euler.copy()
+        # If "From View" is active, override the plane's rotation with the
+        # current viewport orientation before computing the fit.  The plane's
+        # local −Z then points into the screen so the capture volume faces
+        # the camera; bbox projection uses this new frame.
+        if getattr(scene, properties.PROP_FIT_FROM_VIEW, False):
+            region_3d: bpy.types.RegionView3D | None = getattr(
+                context, 'region_data', None)
+            if region_3d is None and context.space_data:
+                region_3d = getattr(context.space_data, 'region_3d', None)
+            if region_3d is not None:
+                view_quat: Quaternion = region_3d.view_rotation.copy()
+                stored_rotation: Euler = view_quat.to_euler('XYZ')
+                # Use the view rotation as the projection frame so the bbox
+                # is measured in the same frame we'll rebuild the plane with.
+                rot_mat = view_quat.to_matrix().to_3x3()
+            else:
+                stored_rotation = plane.rotation_euler.copy()
+                rot_mat = plane.matrix_world.to_3x3().normalized()
+        else:
+            # Preserve the plane's current rotation for the rebuilt plane.
+            stored_rotation = plane.rotation_euler.copy()
+            rot_mat = plane.matrix_world.to_3x3().normalized()
 
-        # Rotation-only matrix of the plane (strips scale + translation).
-        rot_mat = plane.matrix_world.to_3x3().normalized()
         rot_mat_inv = rot_mat.inverted()
 
         # Project every selected (non-plane) object's bbox corners into the
@@ -80,19 +98,32 @@ class OBJECT_OT_lks_quad_grab_fit_to_selection(bpy.types.Operator):
         min_y, max_y = min(local_ys), max(local_ys)
         min_z, max_z = min(local_zs), max(local_zs)
 
-        # Plane sits flush with the TOP of the selection (max local Z).
+        margin: float = getattr(scene, properties.PROP_FIT_MARGIN, 0.0)
+
+        # Plane sits flush with the TOP of the selection, lifted by the margin
+        # so there is a visible gap between the mesh surface and the plane.
         local_centroid: Vector = Vector(
-            ((min_x + max_x) / 2.0, (min_y + max_y) / 2.0, max_z)
+            ((min_x + max_x) / 2.0, (min_y + max_y) / 2.0, max_z + margin)
         )
         world_centroid: Vector = rot_mat @ local_centroid
 
-        # Size: largest of X/Y extents + 5 % margin so nothing clips the edge.
+        # Size: largest of X/Y extents expanded by margin on every side.
         extent_x: float = max_x - min_x
         extent_y: float = max_y - min_y
-        new_size: float = max(extent_x, extent_y, 0.01) * 1.05
+        new_size: float = max(extent_x, extent_y, 0.01) + 2.0 * margin
 
-        # Depth: full Z extent of the selection + 5 % margin.
-        depth: float = max(max_z - min_z, 0.01) * 1.05
+        # Depth: full Z extent + margin at both ends (near lift already done
+        # by shifting the centroid up; add margin again for the far end).
+        depth: float = max(max_z - min_z, 0.01) + 2.0 * margin
+
+        # Snapshot selection so we can restore it after the plane rebuild.
+        prev_selected: list[str] = [
+            o.name for o in context.selected_objects if o is not plane
+        ]
+        active_obj: bpy.types.Object | None = context.view_layer.objects.active
+        prev_active: str | None = (
+            active_obj.name if active_obj is not None and active_obj is not plane else None
+        )
 
         # Remove the old plane and recreate with the new size / position,
         # keeping the stored rotation.
@@ -116,6 +147,20 @@ class OBJECT_OT_lks_quad_grab_fit_to_selection(bpy.types.Operator):
         plane_obj.visible_volume_scatter = False
         plane_obj.visible_shadow = False
         plane_obj.hide_render = True
+        plane_obj.show_wire = True
+
+        # Restore the original selection — deselect the new plane, re-select
+        # everything that was selected before the operation.
+        plane_obj.select_set(False)
+        for name in prev_selected:
+            obj = bpy.data.objects.get(name)
+            if obj is not None:
+                obj.select_set(True)
+        if prev_active is not None:
+            restored: bpy.types.Object | None = bpy.data.objects.get(
+                prev_active)
+            if restored is not None:
+                context.view_layer.objects.active = restored
 
         setattr(scene, properties.PROP_MAX_DEPTH, depth)
 

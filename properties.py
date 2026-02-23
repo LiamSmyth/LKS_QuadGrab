@@ -20,6 +20,8 @@ PROP_GRAB_EXPANDED = "lks_quadgrab_grab_expanded"
 PROP_PREVIEW_EXPANDED = "lks_quadgrab_preview_expanded"
 PROP_DEPTH_MIDPOINT = "lks_quadgrab_depth_midpoint"
 PROP_OUTPUT_NAME = "lks_quadgrab_output_name"
+PROP_FIT_FROM_VIEW = "lks_quadgrab_fit_from_view"
+PROP_FIT_MARGIN = "lks_quadgrab_fit_margin"
 
 
 def register() -> None:
@@ -139,6 +141,24 @@ def register() -> None:
         description="Filename prefix for all outputs of this grab (overrides previous files when unchanged)",
         default="",
     ))
+    setattr(bpy.types.Scene, PROP_FIT_FROM_VIEW, bpy.props.BoolProperty(
+        name="From View",
+        description="Align the plane to the current viewport before fitting to selection",
+        default=False,
+    ))
+    setattr(bpy.types.Scene, PROP_FIT_MARGIN, bpy.props.FloatProperty(
+        name="Fit Margin",
+        description=(
+            "Expand the capture plane by this distance (metres) on every side when "
+            "using Fit to Selection. Adds visible buffer gap between the mesh edge "
+            "and the plane edge, and extends the capture depth by the same amount "
+            "at both ends."
+        ),
+        default=0.0,
+        min=0.0,
+        soft_max=1.0,
+        unit='LENGTH',
+    ))
 
 
 def unregister() -> None:
@@ -162,3 +182,5 @@ def unregister() -> None:
     delattr(bpy.types.Scene, PROP_PREVIEW_EXPANDED)
     delattr(bpy.types.Scene, PROP_DEPTH_MIDPOINT)
     delattr(bpy.types.Scene, PROP_OUTPUT_NAME)
+    delattr(bpy.types.Scene, PROP_FIT_FROM_VIEW)
+    delattr(bpy.types.Scene, PROP_FIT_MARGIN)

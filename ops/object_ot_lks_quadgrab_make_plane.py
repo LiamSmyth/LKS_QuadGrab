@@ -61,6 +61,11 @@ class OBJECT_OT_lks_quad_grab_make_plane(bpy.types.Operator):
         extents: Vector = ws_max - ws_min
 
         # --- 2. Create a single-face quad plane ---------------------------
+        # Snapshot selection so we can restore it after the plane is created.
+        prev_selected: list[str] = [o.name for o in context.selected_objects]
+        active_obj: bpy.types.Object | None = context.view_layer.objects.active
+        prev_active: str | None = active_obj.name if active_obj is not None else None
+
         # Remove any existing reference plane first.
         existing = bpy.data.objects.get(_PLANE_NAME)
         if existing is not None:
@@ -92,6 +97,18 @@ class OBJECT_OT_lks_quad_grab_make_plane(bpy.types.Operator):
         # hide_render as well for belt-and-braces safety.
         plane_obj.hide_render = True
         plane_obj.show_wire = True
+
+        # Restore the original selection — deselect the new plane, then
+        # re-select everything that was selected before the operation.
+        plane_obj.select_set(False)
+        for name in prev_selected:
+            obj = bpy.data.objects.get(name)
+            if obj is not None:
+                obj.select_set(True)
+        if prev_active is not None:
+            restored: bpy.types.Object | None = bpy.data.objects.get(prev_active)
+            if restored is not None:
+                context.view_layer.objects.active = restored
 
         # --- 4. Auto-set PROP_MAX_DEPTH to match the selection depth -----
         # Project each bbox corner onto the plane's local −Z axis to find

@@ -61,9 +61,23 @@ class VIEW3D_PT_lks_quad_grab(bpy.types.Panel):
         row_plane.operator(
             operators.OBJECT_OT_lks_quad_grab_make_plane.bl_idname,
             text="Make QuadGrab Plane", icon='MESH_PLANE')
+        row_plane.prop(scene, properties.PROP_FIT_FROM_VIEW,
+                       text="", icon='HIDE_OFF', toggle=True)
         row_plane.operator(
             operators.OBJECT_OT_lks_quad_grab_fit_to_selection.bl_idname,
             text="Fit to Selection", icon='FULLSCREEN_ENTER')
+        row_margin = col.row(align=True)
+        row_margin.prop(scene, properties.PROP_FIT_MARGIN)
+        _plane_obj: bpy.types.Object | None = bpy.data.objects.get(
+            "QuadGrab Reference Plane")
+        if _plane_obj is not None:
+            _sel_icon: str = (
+                'RESTRICT_SELECT_ON' if _plane_obj.hide_select
+                else 'RESTRICT_SELECT_OFF'
+            )
+            row_plane.operator(
+                operators.OBJECT_OT_lks_quad_grab_toggle_plane_selectable.bl_idname,
+                text="", icon=_sel_icon)
 
         # ── Output Settings (default open) ───────────────────────────────
         col.separator(factor=0.5)
