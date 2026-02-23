@@ -21,6 +21,6 @@ To receive automatic updates directly within Blender, you can add our custom Ext
 1. In Blender, go to **Edit > Preferences > Get Extensions**.
 2. Click the dropdown menu (chevron) in the top right corner and select **Repositories**.
 3. Click the **+** button to add a new repository.
-4. Set the **URL** to: `https://liamsmyth.github.io/LKS_QuadGrab/`
+4. Set the **URL** to: `https://liamsmyth.github.io/LKS_QuadGrab/index.json`
 5. Give it a name (e.g., "LKS Extensions") and click **Create**.
 6. You can now install and update LKS QuadGrab directly from the **Get Extensions** tab.
