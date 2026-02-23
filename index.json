@@ -7,50 +7,6 @@
       "id": "lks_quadgrab",
       "name": "LKS QuadGrab",
       "tagline": "QuadGrab",
-      "version": "1.1.0",
-      "type": "add-on",
-      "maintainer": "LKS <Liam@lksgraphics.ca>",
-      "license": [
-        "SPDX:GPL-2.0-or-later"
-      ],
-      "blender_version_min": "4.2.0",
-      "website": "https://github.com/LiamSmyth/LKS_QuadGrab",
-      "permissions": {
-        "network": "Need network access to download dependencies",
-        "files": "Need file access to save textures",
-        "clipboard": "Need clipboard access to copy paths"
-      },
-      "archive_url": "./lks_quadgrab-1.1.0.zip",
-      "archive_size": 8301,
-      "archive_hash": "sha256:db5b0613c036f038fceb804529f631e01b96d6d994702162b93cec745a9420a8"
-    },
-    {
-      "schema_version": "1.0.0",
-      "id": "lks_quadgrab",
-      "name": "LKS QuadGrab",
-      "tagline": "QuadGrab",
-      "version": "1.1.1",
-      "type": "add-on",
-      "maintainer": "LKS <Liam@lksgraphics.ca>",
-      "license": [
-        "SPDX:GPL-2.0-or-later"
-      ],
-      "blender_version_min": "4.2.0",
-      "website": "https://github.com/LiamSmyth/LKS_QuadGrab",
-      "permissions": {
-        "network": "Need network access to download dependencies",
-        "files": "Need file access to save textures",
-        "clipboard": "Need clipboard access to copy paths"
-      },
-      "archive_url": "./lks_quadgrab-1.1.1.zip",
-      "archive_size": 8414,
-      "archive_hash": "sha256:0fb3ea28ca147c24b586210af8265fc3475fd7192633ded040ec7ab8bf38f7d4"
-    },
-    {
-      "schema_version": "1.0.0",
-      "id": "lks_quadgrab",
-      "name": "LKS QuadGrab",
-      "tagline": "QuadGrab",
       "version": "1.1.2",
       "type": "add-on",
       "maintainer": "LKS <Liam@lksgraphics.ca>",
@@ -66,7 +22,7 @@
       },
       "archive_url": "./lks_quadgrab-1.1.2.zip",
       "archive_size": 8198,
-      "archive_hash": "sha256:fb868584f1539ac8476e6c8816974d2e2d98ea1418f5fd4a083159cb8004078d"
+      "archive_hash": "sha256:3d3f33a78b29ce833324509e2e4716444428dbb624119524ba4c19c535f85667"
     }
   ]
 }
