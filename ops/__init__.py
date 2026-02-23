@@ -19,6 +19,8 @@ from .object_ot_lks_quadgrab_restore import OBJECT_OT_lks_quad_grab_restore
 from .object_ot_lks_quadgrab_make_plane import OBJECT_OT_lks_quad_grab_make_plane
 from .object_ot_lks_quadgrab_fit_to_selection import OBJECT_OT_lks_quad_grab_fit_to_selection
 from .object_ot_lks_quadgrab_toggle_plane_selectable import OBJECT_OT_lks_quad_grab_toggle_plane_selectable
+from .object_ot_lks_quadgrab_fit_depth import OBJECT_OT_lks_quad_grab_fit_depth
+from .object_ot_lks_quadgrab_sculpt_alpha import OBJECT_OT_lks_quad_grab_sculpt_alpha
 
 # Utility re-exports – keep test imports working after the operators → ops rename.
 from ..util.quadgrab_helpers import (  # noqa: F401
@@ -42,6 +44,8 @@ opsToRegister: tuple[type[bpy.types.Operator], ...] = (
     OBJECT_OT_lks_quad_grab_make_plane,
     OBJECT_OT_lks_quad_grab_fit_to_selection,
     OBJECT_OT_lks_quad_grab_toggle_plane_selectable,
+    OBJECT_OT_lks_quad_grab_fit_depth,
+    OBJECT_OT_lks_quad_grab_sculpt_alpha,
 )
 
 

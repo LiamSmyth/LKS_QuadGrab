@@ -66,8 +66,9 @@ class OBJECT_OT_lks_quad_grab_make_plane(bpy.types.Operator):
         active_obj: bpy.types.Object | None = context.view_layer.objects.active
         prev_active: str | None = active_obj.name if active_obj is not None else None
 
-        # Remove any existing reference plane first.
+        # Remove any existing reference plane, preserving its hide_select state.
         existing = bpy.data.objects.get(_PLANE_NAME)
+        prev_hide_select: bool = existing.hide_select if existing is not None else False
         if existing is not None:
             bpy.data.objects.remove(existing, do_unlink=True)
 
@@ -97,6 +98,9 @@ class OBJECT_OT_lks_quad_grab_make_plane(bpy.types.Operator):
         # hide_render as well for belt-and-braces safety.
         plane_obj.hide_render = True
         plane_obj.show_wire = True
+        plane_obj.display_type = 'WIRE'
+        # Persist the selectable state from the previous plane.
+        plane_obj.hide_select = prev_hide_select
 
         # Restore the original selection — deselect the new plane, then
         # re-select everything that was selected before the operation.
@@ -106,7 +110,8 @@ class OBJECT_OT_lks_quad_grab_make_plane(bpy.types.Operator):
             if obj is not None:
                 obj.select_set(True)
         if prev_active is not None:
-            restored: bpy.types.Object | None = bpy.data.objects.get(prev_active)
+            restored: bpy.types.Object | None = bpy.data.objects.get(
+                prev_active)
             if restored is not None:
                 context.view_layer.objects.active = restored
 

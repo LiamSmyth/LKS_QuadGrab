@@ -41,11 +41,14 @@ class VIEW3D_PT_lks_quad_grab(bpy.types.Panel):
         )
         no_target: bool = not has_plane and not has_mesh_sel
 
-        row_qg = col.row()
+        row_qg = col.row(align=True)
         row_qg.scale_y = 1.6
         row_qg.enabled = not path_bad and not no_target
         row_qg.operator(operators.OBJECT_OT_lks_quad_grab.bl_idname,
                         text="QuadGrab!", icon='RENDER_STILL')
+        row_qg.operator(
+            operators.OBJECT_OT_lks_quad_grab_sculpt_alpha.bl_idname,
+            text="", icon='SCULPTMODE_HLT')
 
         if path_bad:
             box: bpy.types.UILayout = col.box()
@@ -71,6 +74,9 @@ class VIEW3D_PT_lks_quad_grab(bpy.types.Panel):
         _plane_obj: bpy.types.Object | None = bpy.data.objects.get(
             "QuadGrab Reference Plane")
         if _plane_obj is not None:
+            row_plane.operator(
+                operators.OBJECT_OT_lks_quad_grab_fit_depth.bl_idname,
+                text="", icon='DRIVER_DISTANCE')
             _sel_icon: str = (
                 'RESTRICT_SELECT_ON' if _plane_obj.hide_select
                 else 'RESTRICT_SELECT_OFF'

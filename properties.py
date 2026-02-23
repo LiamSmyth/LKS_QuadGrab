@@ -22,6 +22,7 @@ PROP_DEPTH_MIDPOINT = "lks_quadgrab_depth_midpoint"
 PROP_OUTPUT_NAME = "lks_quadgrab_output_name"
 PROP_FIT_FROM_VIEW = "lks_quadgrab_fit_from_view"
 PROP_FIT_MARGIN = "lks_quadgrab_fit_margin"
+PROP_LAST_GRAB_PREFIX = "lks_quadgrab_last_grab_prefix"
 
 
 def register() -> None:
@@ -159,6 +160,12 @@ def register() -> None:
         soft_max=1.0,
         unit='LENGTH',
     ))
+    setattr(bpy.types.Scene, PROP_LAST_GRAB_PREFIX, bpy.props.StringProperty(
+        name="Last Grab Prefix",
+        description="Filename prefix used by the most recent QuadGrab (used by Sculpt Alpha)",
+        default="",
+        options={'HIDDEN'},
+    ))
 
 
 def unregister() -> None:
@@ -184,3 +191,4 @@ def unregister() -> None:
     delattr(bpy.types.Scene, PROP_OUTPUT_NAME)
     delattr(bpy.types.Scene, PROP_FIT_FROM_VIEW)
     delattr(bpy.types.Scene, PROP_FIT_MARGIN)
+    delattr(bpy.types.Scene, PROP_LAST_GRAB_PREFIX)

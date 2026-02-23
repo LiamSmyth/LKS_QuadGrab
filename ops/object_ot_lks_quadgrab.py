@@ -397,6 +397,9 @@ class OBJECT_OT_lks_quad_grab(bpy.types.Operator):
                 preview_mat: bpy.types.Material = add_preview_mat()
                 preview_plane.active_material = preview_mat
 
+        # Store the prefix so the Sculpt Alpha operator can locate the output files.
+        setattr(scene, properties.PROP_LAST_GRAB_PREFIX, timestamp)
+
         # Restore the selection that was active when the user clicked QuadGrab.
         for obj in list(context.selected_objects):
             obj.select_set(False)

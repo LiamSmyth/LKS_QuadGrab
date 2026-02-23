@@ -116,6 +116,9 @@ class OBJECT_OT_lks_quad_grab_fit_to_selection(bpy.types.Operator):
         # by shifting the centroid up; add margin again for the far end).
         depth: float = max(max_z - min_z, 0.01) + 2.0 * margin
 
+        # Preserve hide_select state across the plane rebuild.
+        prev_hide_select: bool = plane.hide_select
+
         # Snapshot selection so we can restore it after the plane rebuild.
         prev_selected: list[str] = [
             o.name for o in context.selected_objects if o is not plane
@@ -148,6 +151,9 @@ class OBJECT_OT_lks_quad_grab_fit_to_selection(bpy.types.Operator):
         plane_obj.visible_shadow = False
         plane_obj.hide_render = True
         plane_obj.show_wire = True
+        plane_obj.display_type = 'WIRE'
+        # Persist the selectable state from the previous plane.
+        plane_obj.hide_select = prev_hide_select
 
         # Restore the original selection — deselect the new plane, re-select
         # everything that was selected before the operation.
