@@ -16,7 +16,7 @@ https://youtu.be/Y562RmPBJwI
 4. Select the downloaded `.zip` file and click **Install from Disk**.
 5. Enable the add-on by checking the box next to **LKS QuadGrab**.
 
-### Automatic Updates (Blender 4.2+)
+### Automatic Updates (Blender 5.0+)
 To receive automatic updates directly within Blender, you can add our custom Extension Repository:
 1. In Blender, go to **Edit > Preferences > Get Extensions**.
 2. Click the dropdown menu (chevron) in the top right corner and select **Repositories**.
