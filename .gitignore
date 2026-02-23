@@ -4,6 +4,9 @@
 *.blend2
 *.crash.txt
 
+# Local machine paths (developer-specific, not committed)
+local_paths.bat
+
 # Python
 __pycache__/
 *.py[cod]
@@ -262,3 +265,5 @@ __marimo__/
 .streamlit/secrets.toml
 **__pycache__/**
 **__pycache__/**
+
+quadgrab/*

@@ -10,11 +10,21 @@ LKS QuadGrab is a Blender add-on that allows you to use a quad (mesh object) as 
 
 ## Installation
 
+### Manual Installation
 1. Download the add-on as a `.zip` file.
 2. In Blender, go to **Edit > Preferences > Get Extensions**.
 3. Click the **Install from Disk...** button (or drag and drop the `.zip` file).
 4. Select the downloaded `.zip` file and click **Install from Disk**.
 5. Enable the add-on by checking the box next to **LKS QuadGrab**.
+
+### Automatic Updates (Blender 4.2+)
+To receive automatic updates directly within Blender, you can add our custom Extension Repository:
+1. In Blender, go to **Edit > Preferences > Get Extensions**.
+2. Click the dropdown menu (chevron) in the top right corner and select **Repositories**.
+3. Click the **+** button to add a new repository.
+4. Set the **URL** to: `https://liamsmyth.github.io/LKS_QuadGrab/`
+5. Give it a name (e.g., "LKS Extensions") and click **Create**.
+6. You can now install and update LKS QuadGrab directly from the **Get Extensions** tab.
 
 ## Usage
 
