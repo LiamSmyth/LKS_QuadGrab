@@ -1,0 +1,40 @@
+---
+description: Blender addon registration, dev reload, and F8 workflow
+globs: "**/*.py"
+alwaysApply: false
+---
+
+# Blender addon dev reload
+
+## register.py pattern
+
+- Centralize registration in `register.py` (or `register_main.py`).
+- Maintain explicit `MODULES` list for dependency order (preferences, keymaps, utils before UI/operators).
+- Auto-discover additional `.py` submodules via filesystem walk when appropriate; merge discovered modules after explicit list, deduplicated.
+- `__init__.py` delegates to `register.register()` / `register.unregister()` and reloads `register` on script reload.
+
+## Dev reload (F8 / script reload)
+
+On every `register()` when hot-reload is supported:
+
+1. Reload **all** imported addon submodules from disk — deepest modules first.
+2. Re-import modules in dependency order.
+3. Skip reloading `register` and `__init__` themselves.
+
+New `.py` files under the addon package should be picked up by discovery without manual `importlib.reload` calls in each file.
+
+## Symmetric register / unregister
+
+- Register: import modules → register bpy types per module → register keymaps → register preferences.
+- Unregister: reverse order — keymaps, then modules (reversed), clear module-level caches/state.
+- Every `bpy.utils.register_class` must have a matching `unregister_class` on disable.
+- Modules with custom `register()` / `unregister()` must clean up keymaps, handlers, and scene/window properties they add.
+
+## Module layout
+
+- One operator/panel/menu per file is typical; large UI modules split as `/<name>/_<utility>.py`.
+- Shared logic belongs in `static_utilities/` or `utils/`, not duplicated across operators.
+
+## Real environment
+
+Changes take effect after addon reload (F8 or disable/enable). Run commands and investigate problems yourself during development.

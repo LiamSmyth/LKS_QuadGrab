@@ -1,0 +1,50 @@
+---
+description: UI Requirements (Universal)
+alwaysApply: true
+---
+
+# UI Requirements (Universal)
+
+What must be true of any UI regardless of toolkit. Repo-specific bindings, theme package, and widget inventory live in project `ui_requirements.instructions.md`.
+
+Implementation detail files: `ui_code.instructions.md`, `ui_aesthetics.instructions.md`, `ui_testing.instructions.md`.
+
+## Non-Negotiables
+
+| #   | Rule                                                                                                                                                        |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Keyboard / mouse / wheel / tablet input through a **remappable binding registry** — no hard-coded `Qt.MouseButton.*` or bare `QShortcut(...)` at call sites |
+| 2   | Colors, fonts, metrics from **theme tokens** — no hex literals or `QColor("#...")` in widget code                                                           |
+| 3   | Widgets are **thin shells** — business logic in non-UI modules, not in `_on_click` handlers                                                                 |
+| 4   | Every renderable surface has a mandatory visual regression test (`@pytest.mark.gui` + screenshot where applicable)                                          |
+| 5   | Defaults centralized in module `actions.py` / `default_theme.py` (or shared theme builtins) — no scattered inline defaults                                  |
+| 6   | Actions/tokens **discoverable via registry** so prefs/editor surfaces them; consumers opt in to overrides only                                              |
+| 7   | Every action reachable without a mouse                                                                                                                      |
+| 8   | Expensive fullscreen/large-area fills GPU-first when GPU rendering is available; CPU only for validation/fallback/export                                    |
+| 9   | Shader source in module-local `shaders/` — not embedded in Python except tiny fixtures                                                                      |
+| 10  | Draw parameters affecting GPU output passed explicitly to shaders (uniforms/buffers/constants)                                                              |
+| 11  | **Lookup before create** — scan existing shared widget inventory before writing new UI                                                                      |
+| 12  | **Generic when ≥2 modules** — promote reusable widgets to shared package root early                                                                         |
+| 13  | **Promote immediately** when a second module needs a module-local widget                                                                                    |
+| 14  | **Canvas-embedded widgets stay canvas-blind** — adapter wiring lives outside the widget class                                                               |
+
+## Bubble-Up vs Re-Declaration
+
+Child registers its actions/tokens; parent registry discovers them. Re-declaration is **opt-in for overrides**, never mandatory pass-through.
+
+## Accessibility Floor
+
+- Body text contrast ≥ 4.5:1; large text / UI chrome ≥ 3:1 (WCAG AA)
+- Visible focus indicators on interactive elements
+- Respect OS reduced-motion / reduced-transparency when exposed
+
+## Forbidden
+
+- ❌ Hard-coded colors in widget code → theme tokens
+- ❌ `if event.button() == Qt.LeftButton:` → binding registry
+- ❌ `QShortcut("Ctrl+S", ...)` without a registered action
+- ❌ File I/O, network, or heavy computation inside widgets
+- ❌ Theme that changes layout topology or behavior
+- ❌ CPU-only fullscreen procedural overlays after GPU proves faster
+- ❌ New widgets without checking existing inventory
+- ❌ Hidden shader defaults for values already owned by Python/theme config

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "shared_root": "C:\\BTS_SSD\\Work_Scripts\\blender_utils\\cursor_addons_shared",
+  "rules": [
+    "blender-addon-global-api-51.mdc",
+    "blender-addon-global-api-compat.mdc",
+    "blender-addon-global-code-style.mdc",
+    "blender-addon-global-dev-reload.mdc",
+    "blender-addon-global-guidance.mdc",
+    "blender-addon-global-operator-testing.mdc",
+    "blender-addon-global-operators.mdc",
+    "blender-addon-global-registration.mdc",
+    "blender-addon-global-submodule-workflow.mdc"
+  ],
+  "skills": [
+    "blender-addon-global-new-addon",
+    "blender-addon-global-publishing",
+    "blender-addon-global-submodules"
+  ],
+  "user_global_enabled": true
+}

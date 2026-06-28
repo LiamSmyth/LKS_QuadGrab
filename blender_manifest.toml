@@ -31,6 +31,7 @@ paths_exclude_pattern = [
     "*.bat",
     "*.md",
     "/test.py",
+    "/test_sandbox_extension.py",
     "/main.py",
     "/publish_*.py",
     "/release.py",

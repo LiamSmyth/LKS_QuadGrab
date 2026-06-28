@@ -24,3 +24,26 @@ To receive automatic updates directly within Blender, you can add our custom Ext
 4. Set the **URL** to: `https://liamsmyth.github.io/LKS_QuadGrab/index.json`
 5. Give it a name (e.g., "LKS Extensions") and click **Create**.
 6. You can now install and update LKS QuadGrab directly from the **Get Extensions** tab.
+
+## Testing
+
+### Headless Test Suite (addon)
+Runs the unit/integration tests against the local addon tree:
+```
+launch_headless_test.bat
+```
+
+### Sandbox Extension Test
+Because the local workspace contains dev files that are excluded from the published extension, it's important to verify the **packaged** extension loads correctly. The sandbox test builds (or pulls) the extension zip, extracts it to an isolated temp directory, and runs Blender headless against it.
+
+**Test the local build** (verifies `blender_manifest.toml` paths are correct):
+```
+test_sandbox_extension.bat
+```
+
+**Test the published remote** (verifies what users actually download from gh-pages):
+```
+test_sandbox_extension.bat --remote
+```
+
+> **Important:** Always run `test_sandbox_extension.bat --remote` after publishing a release to confirm the deployed extension installs and registers cleanly. A feature should not be considered complete until the sandbox test passes.

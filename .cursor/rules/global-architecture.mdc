@@ -1,0 +1,76 @@
+---
+description: Code Architecture Rules
+alwaysApply: true
+---
+
+# Code Architecture Rules
+
+File organization, class placement, and shared vs module-local boundaries. Canvas2D / repo-specific layout and aggregator rules live in project `architecture.instructions.md`.
+
+## Root Folders = Shared Infrastructure Only
+
+Root-level shared folders exist **exclusively** for code used across multiple modules. If only one module uses it, it does not belong at root level.
+
+| Question | Answer → Location |
+|----------|-------------------|
+| Will 3+ consumer scripts import this? | Shared package root (`components/`, `widgets/`, etc.) |
+| Only one module uses it? | `<module>/ui/` or co-located `<module>/<script>_ui.py` |
+| Generic utility widget? | Shared `widgets/` or `components/` |
+| Module-specific widget? | `<module>/ui/widgets/` |
+| Module-specific data? | `<module>/data/` |
+| Cross-cutting data? | Shared `data/` at package root |
+
+Never place module-specific components in shared aggregator folders.
+
+## One Class Per File
+
+- Each `.py` file contains **one primary class**
+- File name matches the class: `compression_config.py` → `CompressionConfig`
+- Exceptions: `*Config` dataclass alongside its class; small `_`-prefixed private helpers
+- Forbidden: multiple public classes in one file
+
+## Base Class / Inheritance Pattern
+
+- Base ABC/protocol in `<parent>/<base_snake>.py`
+- Never add inherited classes inside the base file
+- Never create pluralized catch-all files (`rules.py`, `processors.py`)
+- Each concrete subclass: own file under a plural subfolder named after the base
+
+**Legacy suffix layout** (existing modules only): `<differentiator>_<parent_snake>.py` under `<parents>/`. Do not introduce this style in new code.
+
+**Subclass naming**: `<Differentiator><ParentClassName>` — parent class name as suffix.
+
+## `_<user_class>/` Private-Helper Convention
+
+When helpers exist for **exactly one** entry-point class, use `_<owner_class_snake>/` (leading underscore = private to that class).
+
+- Only the owner class file may import from it
+- Use when splitting oversized files (>500 LOC soft / >1000 LOC hard)
+- If a helper is used by **3+ classes**, **promote it out** (rename without leading underscore, move to shared location)
+
+## Module-Local UI Placement
+
+**Co-located** (simple, tightly coupled):
+
+```
+<module>/
+├── my_thing.py
+├── my_thing_ui.py
+├── my_thing_config.py
+└── my_thing_config_ui.py
+```
+
+**Subfolder** (complex UI):
+
+```
+<module>/ui/
+├── components/
+├── widgets/
+└── test/
+```
+
+### Decision Flowchart
+
+1. UI used by **3+ modules**? → Shared UI package root
+2. Single file tightly coupled to one script? → Co-locate as `<script>_ui.py`
+3. Multiple UI files or custom widgets? → `<module>/ui/`

@@ -1,0 +1,68 @@
+---
+description: Meta-Instructions: Editing Instruction Files
+alwaysApply: false
+globs: **/*.instructions.md
+---
+
+# Meta-Instructions: Editing Instruction Files
+
+Context primers for LLMs — not human documentation. Loaded by `applyTo` globs.
+
+## Core Principles
+
+1. **Optimize for tokens**
+2. **Rules, not explanations**
+3. **Tables over prose**
+4. **One example max**
+5. **No motivational language**
+
+## `applyTo` Patterns
+
+| Pattern | Loads When Editing |
+|---------|-------------------|
+| `**` | All files |
+| `**/*gui*.py` | GUI Python files |
+| `**/test/**` | Test folders |
+| `**/*_cli.py` | CLI modules |
+| `**/*config*.py` | Config files |
+| `**/*.bat` | Batch files |
+| `**/*.instructions.md` | Instruction files |
+
+## Scope (`global` | `project` | `overlay`)
+
+| `scope` | Cursor rule in repo | Promotable? |
+|---------|-------------------|-------------|
+| `global` | `global-<slug>.mdc` (from `global_<slug>.instructions.md` or explicit `scope: global`) | Yes → `~/.cursor/rules/<slug>.mdc` |
+| `project` | `<slug>.mdc` | No — workspace inventory / repo tooling |
+| `overlay` | `overlay-<slug>.mdc` | No — sibling-repo overlay deltas |
+
+**Global rules must not reference workspace-specific packages, paths, or inventories.** Put those in project-scoped files (`core.instructions.md`, routers, domain rules).
+
+Run `python -m ai.agent.cursor_customizations.sync_from_vscode` after scope or name changes.
+
+## File Structure
+
+```markdown
+---
+applyTo: '<glob-pattern>'
+scope: global|project|overlay
+---
+
+# Title
+- Rule bullets
+```
+
+## Compression Techniques
+
+| Before | After |
+|--------|-------|
+| "You MUST always..." | "Use X" |
+| Long explanation | One bullet |
+| 3 examples | 1 example |
+
+## Anti-Patterns
+
+- ❌ Verbose "why" explanations
+- ❌ Repeated CRITICAL/MANDATORY emphasis
+- ❌ Duplicating rules (reference instead)
+- ❌ Task workflows in instructions (use `.github/skills/`)

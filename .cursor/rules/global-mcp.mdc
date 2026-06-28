@@ -1,0 +1,50 @@
+---
+description: MCP Servers (Cursor — generic)
+alwaysApply: true
+---
+
+# MCP Servers (Cursor — generic)
+
+MCP server definitions in `~/.cursor/mcp.json` apply **across all workspaces** on this machine. Prefer user-global MCP config over per-repo `.cursor/mcp.json` duplicates after promote.
+
+Repo-specific server inventory and launcher paths live in project `mcp.instructions.md`.
+
+## Agent discipline
+
+| Rule | Detail |
+|------|--------|
+| Read schema first | Inspect the MCP tool descriptor (parameters, required fields) before every `CallMcpTool` |
+| Prefer MCP over shell | When a task matches an enabled MCP server, use MCP — not ad-hoc scripts or browser automation |
+| Stateless tools | Many servers take an explicit `path` (or equivalent) per call — no session setup unless the server docs require it |
+| Fail clearly | If MCP is missing or auth fails, say which server/tool failed; do not silently fall back to destructive file edits |
+| Partial capability | If MCP cannot complete the request, finish what you can and report what was blocked |
+
+## Configuration shape (stdio)
+
+```json
+{
+  "mcpServers": {
+    "server-name": {
+      "command": "/path/to/python",
+      "args": ["/path/to/server.py"]
+    }
+  }
+}
+```
+
+Multi-root workspaces may use `${workspaceFolder:<folderName>}` in `command` / `args` when the server lives in a named workspace folder.
+
+## VS Code Copilot → Cursor tool mapping (MCP)
+
+| Copilot / VS Code | Cursor |
+|-------------------|--------|
+| `knowledge-repo/*`, domain MCP tool namespaces | `CallMcpTool` against the matching server in `mcp.json` |
+| `web/fetch` | `WebFetch` (only when MCP is not the right transport) |
+
+## Promote workflow
+
+1. `python -m ai.agent.cursor_manager scan --workspace <code-workspace> --json`
+2. `python -m ai.agent.cursor_manager promote --workspace … --items …:mcp_file:mcp.json,workspace:mcp_workspace:workspace-mcp --on-collision overwrite --yes`
+3. Remove duplicate `.cursor/mcp.json` from project mirrors once user-global config is verified.
+
+Cursor Manager sync inventory: `user.mcp` → `~/.cursor/mcp.json`.

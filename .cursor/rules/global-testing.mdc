@@ -1,0 +1,100 @@
+---
+description: Testing Rules (generic) — sister tests, test_all pyramid, data in/out
+alwaysApply: false
+globs: **/test/**
+---
+
+# Testing Rules (generic)
+
+Repo-specific launchers, Blender bindings, and pytest markers live in project `testing.instructions.md`.
+
+## Test code placement (mandatory)
+
+All testing-related code lives under the module's **`test/`** subdirectory — aggregators, discovery, parity scaffolding, path helpers, output logging, fixtures, runners.
+
+| Rule | Detail |
+|------|--------|
+| **MUST** | Place new test helpers in `<module>/test/` (sister scripts, `aggregator.py`, `parity.py`, `paths.py`, …) |
+| **NEVER** | Create new `test_support/` folders |
+| **Migrate** | When touching legacy `test_support/` code, move it into the owning module's `test/` |
+| **Exception** | Repo-root `tests/` — integration launchers only (`blender_headless.py`, `run_tests.py`, `lks_test_launcher.py`) |
+
+```
+✅ operators/bake_ops/engine/test/aggregator.py       # shared bake-engine test helpers
+✅ operators/bake_ops/engine/map_types/curvature/test/curvature_runner.py  # type-local
+❌ operators/bake_ops/engine/map_types/test_support/aggregator.py
+```
+
+## Sister tests
+
+Every Python module script gets a **sister test script** in a sibling `test/` folder at the same module/submodule level:
+
+```
+<module>/
+├── my_script.py
+└── test/
+    └── my_script_test.py
+```
+
+| Type | Pattern |
+|------|---------|
+| Module / helper | `<source_stem>_test.py` |
+| Operator class | `<OperatorClass>_test.py` |
+
+## Aggregator pyramid (`test_all.py`)
+
+Every `test/` folder exposes **`test_all.py`** — the single runnable entry for that level.
+
+| Level | `test_all.py` runs |
+|-------|---------------------|
+| **Leaf** | Sibling `*_test.py` scripts in this folder |
+| **Stem** | Local tests **and** each child submodule's `test/test_all.py` |
+| **Root** | `<workspace>/test/test_all.py` — all top-level module aggregators |
+
+**Leaf → stem:** parent invokes child aggregators; do not maintain duplicate test lists at every level.
+
+## Test data (per test folder)
+
+```
+test/
+├── data/
+│   ├── in/     # inputs for this folder
+│   └── out/    # outputs for this folder only
+```
+
+| Kind | Path | Notes |
+|------|------|-------|
+| **Inputs** | `test/data/in/` | May also read shared workspace assets when multiple tests need them |
+| **Outputs** | `test/data/out/` | **Local only** — each `*_test.py` and local `test_all.py` writes here |
+| **Parent composites** | parent `test/data/out/` | Parent `test_all.py` assembling grids/composites reads child `test/data/out/`, writes aggregates to **parent** `test/data/out/` — never into child outs |
+
+Small inline fixtures stay in the test file. Large/binary inputs belong under `test/data/in/`.
+
+## Hygiene (clear before run)
+
+- Each `*_test.py` clears **its own** artifacts in local `test/data/out/` before generation.
+- Each `test_all.py` clears **only its own** local `test/data/out/` at batch begin (child aggregators skip when `LKS_TEST_AGGREGATOR_CHILD=1`).
+- Parent `test_all.py` compositing reads child `test/data/out/` but does **not** wipe child outs between subprocesses.
+
+## Permissions
+
+- Tests **may hardcode** paths to workspace resources/assets.
+- Tests **may generate or use** data at runtime.
+
+## Coverage & failure mode
+
+Per public function: happy path, edge case, error case where applicable. Complex functions: parametrized boundaries.
+
+Tests MUST NOT stop on first failure — accumulate failures, report at end, single non-zero exit.
+
+## Pragmatic exemptions
+
+No sister test for files containing ONLY: enums, dataclasses (no logic), constants, re-exports.
+
+## Qt / pytest overlay (when applicable)
+
+| Type | Pattern |
+|------|---------|
+| Qt GUI test | `@pytest.mark.gui` on `*_test.py` |
+| Visual QA demo | `demo_<component>_ui_gui.py` (not pytest) |
+| Primary run | `pytest -m gui -v`; headless CI: `QT_QPA_PLATFORM=offscreen` |

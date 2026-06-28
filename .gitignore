@@ -266,4 +266,4 @@ __marimo__/
 **__pycache__/**
 **__pycache__/**
 
-quadgrab/*
+debug/sandbox_ext/*

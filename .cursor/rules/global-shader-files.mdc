@@ -1,0 +1,24 @@
+---
+description: Shader File Rules
+alwaysApply: false
+globs: **/shaders/**
+---
+
+# Shader File Rules
+
+## Placement
+
+- Shader source lives in a module-local `shaders/` directory owned by the feature that loads it.
+- Keep shader filenames descriptive and stable: `<feature>.<frag|vert|comp|glsl|wgsl|hlsl>`.
+- Do not move shared shaders to root infrastructure unless two or more modules import the same shader asset.
+
+## Configuration
+
+- Expose draw-affecting values as shader inputs; do not hard-code values already present in Python config or theme tokens.
+- Names should mirror the owning Python field/token where practical: `dot_radius_px` -> `u_dot_radius_px`.
+- Keep shader defaults limited to defensive fallbacks for invalid inputs, not product behavior.
+
+## Tests
+
+- Shader changes affecting visual output need screenshot or pixel-level tests.
+- Transform-sensitive shaders need representative transform tests: zoom, pan, DPR, rotation where applicable.

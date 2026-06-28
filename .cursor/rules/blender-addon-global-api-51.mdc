@@ -1,0 +1,36 @@
+---
+description: Blender 5.1+ API patterns and forbidden access styles
+globs: "{operators,static_utilities,utils,thumbnail_renderer}/**/*.py"
+alwaysApply: false
+---
+
+# Blender 5.1+ API
+
+## Do not use
+
+```python
+# ❌ Dict-like IDProperty on data-blocks
+obj["my_key"] = value
+modifier["Input_2"] = 2
+
+# ❌ Deprecated / fragile color access when proxy returns empty .data
+mesh.color_attributes.active_color.data  # verify; prefer attributes API
+```
+
+## Do use
+
+```python
+# Custom object data — register RNA in addon properties module
+from ..addon_properties import store_custom_metadata
+
+# Geometry Nodes sockets — helper module, not dict access
+from .geonodes_modifier_helpers import get_nodes_modifier_input, set_nodes_modifier_inputs
+from .addon_constants import SUBDIV_SOCKET_CREASE
+
+# Mesh attributes (face sets, color, etc.)
+mesh.attributes[attr_name].data.foreach_get("value", arr)
+```
+
+## Version bumps
+
+On Blender update breakage, check [Python API release notes](https://developer.blender.org/docs/release_notes/) for your target version before adding compatibility shims. See also `blender-addon-global-api-compat.mdc`.

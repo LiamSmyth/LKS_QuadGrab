@@ -1,0 +1,90 @@
+---
+description: Testing pyramid, fixtures, aggregators, and headless Blender execution
+globs: "operators/**/*.py,**/test/**/*_test.py,tests/**/*.py"
+alwaysApply: false
+---
+
+# Blender addon operator & module testing
+
+Agents adding or changing operators, helpers, or submodules must add or extend **colocated** tests and wire them into the **nearest aggregator** when the addon uses that pattern. Never mock `bpy` — run real headless Blender for bpy layers.
+
+## Testing pyramid (mandatory order)
+
+Run and fix failures **bottom-up**. Do not add higher layers until lower layers pass.
+
+| Layer | Runtime | What to validate |
+|-------|---------|------------------|
+| **1 — Pure Python** | System `python` | Helper logic, planners, parsers, math — no `bpy`. Use fakes / `SimpleNamespace` / plain arrays. |
+| **2 — Headless Blender (mechanical)** | `blender.exe --background` | Loadability, `poll`, correct/incorrect cases, scene/RNA/mesh assertions, PNG/hash checks where applicable. |
+| **3 — UI execution** | Blender with UI or simulation harness | Panel buttons, menus, F3 search → op runs end-to-end. **Only after layers 1–2 are green** for that feature. |
+
+Skip layers that genuinely do not apply (document in test docstring). Pure poll-guard ops may stop at layer 2.
+
+### Layer 1 guidance
+
+- Extract testable logic into `static_utilities/` or category helpers so layer 1 is possible.
+- Run: `python path/to/test_script.py` when the script has no top-level `import bpy`.
+
+### Layer 2 guidance
+
+- **Mechanical validation:** assert return sets, object/collection names, mesh counts, attribute values, file outputs — not "looks okay".
+- **Fixtures:** commit small source fixtures; **gitignore** regenerated `test/data/out/` trees.
+- **Bootstrap:** use addon test helpers when available — do not double-call `register()` when the addon is already enabled.
+
+### Layer 3 guidance
+
+- Validate that UI wired in panels/menus invokes the same helper path tested in layers 1–2.
+
+## Layout
+
+**Sister test per script** (see `global-testing.mdc` when installed). Minimum one test case per operator when tests exist in the repo.
+
+```
+operators/<category>/
+├── MYADDON_OT_MyOperator.py
+└── test/
+    ├── MYADDON_OT_MyOperator_test.py
+    ├── test_all.py                    # category aggregator (when used)
+    └── data/
+        ├── in/
+        └── out/                       # local outputs only; clear before run
+```
+
+- Test module: `<OperatorClass>_test.py` or `<source_stem>_test.py`.
+- Repo-root `tests/` is often launchers only — follow project rules for suite tables.
+
+## Test aggregation (`test_all.py` pyramid)
+
+When the addon uses aggregators, every `test/` folder should have **`test_all.py`** that invokes sibling `*_test.py` and child aggregators. Parent `test_all.py` invokes child aggregators bottom-up.
+
+**Hygiene:** each `*_test.py` clears only outputs it owns at start. Parent aggregators clear owned out trees once at batch begin — not between child subprocesses.
+
+## Headless execution (layer 2+)
+
+| Requirement | Value |
+|-------------|-------|
+| Runtime | Real `blender.exe` — **never** mock `bpy` |
+| Mode | `--background` / `-b` |
+| Isolation | `--factory-startup`; enable **only** the addon under test |
+| Exit codes | `--python-exit-code 1`; script ends with `raise SystemExit(0|1)` |
+
+Direct Blender:
+
+```text
+blender.exe --background --factory-startup --python-exit-code 1 --python <path/to/test_script.py>
+```
+
+Use the addon's documented test launcher when present (e.g. `tests/blender_headless.py`, `launch_headless_test.bat`).
+
+## Test script skeleton
+
+Docstring should include canonical launch line. Pattern: bootstrap → layer-1 cases (if any) → loadability → correct → incorrect → `main()` collecting failures → `raise SystemExit(0|1)`.
+
+## Assertion patterns
+
+- Operator return: `{'FINISHED'}` / `{'CANCELLED'}` — never ignore.
+- Scene: object names, mesh counts, collections, registered RNA props.
+- Poll: `Class.poll(context)` with `bpy.context.temp_override(...)` when needed.
+- Report per-case `[PASS]`/`[FAIL]`; one non-zero exit at end.
+
+When adding an operator or submodule, add tests and aggregator wiring in the same change unless the user explicitly defers testing.

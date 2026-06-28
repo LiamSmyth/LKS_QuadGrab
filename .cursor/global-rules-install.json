@@ -1,0 +1,28 @@
+{
+  "schema_version": 2,
+  "external_root": "C:\\BTS_SSD\\Resources_Cursor_Cfg",
+  "rules": [
+    "global-architecture.mdc",
+    "global-core.mdc",
+    "global-instructions-meta.mdc",
+    "global-mcp.mdc",
+    "global-performance.mdc",
+    "global-shader-files.mdc",
+    "global-testing.mdc",
+    "global-ui-aesthetics.mdc",
+    "global-ui-requirements.mdc"
+  ],
+  "agents": [
+    "customization-editor.md",
+    "design-concept.md",
+    "obsidian-canvas.md",
+    "paint-specialist.md",
+    "perf-optimizer.md",
+    "perf-profiler.md",
+    "pyflow-specialist.md",
+    "ui-design-concept.md",
+    "ui-specialist.md",
+    "work-order-designer.md",
+    "work-order-executor.md"
+  ]
+}

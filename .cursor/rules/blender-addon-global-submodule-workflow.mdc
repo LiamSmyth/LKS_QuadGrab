@@ -1,0 +1,474 @@
+---
+description: Blender submodule and addon abstraction workflow — scaffolding, testing, naming, linking (shared across all Blender addons)
+alwaysApply: false
+---
+
+# Submodule & Addon Abstraction Workflow
+
+Step-by-step instructions for extracting reusable code into a shared Blender submodule, creating its development addon wrapper, and linking it into consuming addons. Use this as both an LLM primer and a living reference.
+
+## Prerequisites
+
+| What | Where | Purpose |
+|------|-------|---------|
+| Shared tools | `blender_utils/addon_tools/` | Generator CLI, build, publish, test |
+| Submodule templates | `blender_utils/submodules/_template_submodule/` | Scaffold skeleton for new submodules |
+| Addon template | `blender_utils/.template_addon/` | Scaffold skeleton for new addons |
+| Dev addons home | `blender_addons/` | Working directory for addon development |
+| Machine paths | Per-addon `local_paths.bat` (gitignored) | `BLENDER_EXE`, `BLENDER_USER_SCRIPTS`, `ADDON_TOOLS` |
+
+All paths below are relative to the `Work_Scripts/` workspace root unless otherwise noted.
+
+---
+
+## Overview: What Gets Created
+
+When abstracting code into a shared submodule, you end up with three artifacts:
+
+```
+blender_utils/submodules/<module_id>/   ← The shared submodule (standalone Python package)
+blender_addons/lks_<module_id>_dev/     ← Dev wrapper addon (loads the submodule in Blender)
+  └─ submodules/<module_id>/            ← Junction → blender_utils/submodules/<module_id>/
+```
+
+The submodule is the source of truth. The dev addon is a thin Blender-loadable shell whose only job is to register the submodule so you can test it in isolation. Production addons later link the same submodule via their own junction.
+
+---
+
+## Phase 1: Identify the Abstraction Boundary
+
+Before scaffolding anything, define what the submodule will own.
+
+**Checklist:**
+- [ ] Name the domain clearly (e.g., "hotkey_resolver", "mesh_cleanup", "export_helpers")
+- [ ] List the operators it will expose (`LKS_OT_*`)
+- [ ] List the utility functions it provides (pure helpers in `util/`)
+- [ ] Confirm it has **zero imports from the parent addon** — submodules are fully standalone
+- [ ] Identify any scene properties it needs (`bpy.props.*` / `PropertyGroup`)
+- [ ] Decide: does it need a UI panel, or just operators callable from other panels?
+
+**Boundary rules:**
+- A submodule **never** imports from the addon that hosts it
+- A submodule **never** calls `bpy.ops.*` for its own operators (use direct function calls)
+- A submodule **may** import from other submodules if that dependency is declared and junctioned
+- Shared pure-Python utilities (no `bpy`) belong in `blender_utils/addon_tools/` or a non-Blender package — not in a submodule
+
+---
+
+## Phase 2: Scaffold the Submodule + Dev Addon
+
+### 2a. Run the generator
+
+From the `blender_utils/` directory:
+
+```powershell
+cd C:\BTS_SSD\Work_Scripts\blender_utils
+python -m addon_tools.generate submodule "<module_id>" "<Module Name>"
+```
+
+**Example:**
+```powershell
+python -m addon_tools.generate submodule "mesh_cleanup" "Mesh Cleanup"
+```
+
+This single command does four things:
+1. Copies `_template_submodule/` → `submodules/mesh_cleanup/` with tokens replaced
+2. Copies `.template_addon/` → `blender_addons/lks_mesh_cleanup_dev/` with tokens replaced
+3. Creates a junction: `blender_addons/lks_mesh_cleanup_dev/submodules/mesh_cleanup/` → canonical source
+4. Updates the dev addon's `addon_config.toml` with the submodule entry
+
+### 2b. Initialize git repos
+
+```powershell
+cd C:\BTS_SSD\Work_Scripts\blender_utils\submodules\mesh_cleanup
+git init
+
+cd C:\BTS_SSD\Work_Scripts\blender_addons\lks_mesh_cleanup_dev
+git init
+```
+
+Both directories already have `.gitignore` files from the templates.
+
+### 2c. Configure local paths
+
+Edit the dev addon's `local_paths.bat` with your machine-specific values:
+
+```bat
+set BLENDER_EXE=C:\path\to\blender.exe
+set BLENDER_USER_SCRIPTS=C:\path\to\scripts
+set ADDON_TOOLS=C:\BTS_SSD\Work_Scripts\blender_utils\addon_tools
+```
+
+### 2d. Create a junction from Blender to the dev addon
+
+Blender needs to find the addon in its scripts directory. Create a junction:
+
+```powershell
+# From the dev addon directory:
+setup_junctions.bat
+```
+
+Or manually:
+```powershell
+cmd /c mklink /J "C:\<BLENDER_USER_SCRIPTS>\addons\lks_mesh_cleanup_dev" "C:\BTS_SSD\Work_Scripts\blender_addons\lks_mesh_cleanup_dev"
+```
+
+This gives you a two-level junction chain:
+```
+Blender addons/lks_mesh_cleanup_dev/     → blender_addons/lks_mesh_cleanup_dev/
+  └─ submodules/mesh_cleanup/            → blender_utils/submodules/mesh_cleanup/
+```
+
+Python imports and `shutil.copytree` both follow junctions transparently — verified and tested.
+
+---
+
+## Phase 3: Write the Submodule Code
+
+### File structure after scaffolding
+
+```
+submodules/mesh_cleanup/
+├── __init__.py          # Contract: register(), unregister(), reload()
+├── register.py          # Class tuples + bpy registration loop
+├── ui.py                # Panel (bl_parent_id set dynamically)
+├── ops/
+│   └── __init__.py      # Operator imports
+└── .gitignore
+```
+
+### Submodule contract (mandatory interface)
+
+Every submodule **must** expose three functions in `__init__.py`:
+
+```python
+def register(parent_panel_id: str | None = None) -> None:
+    """Register classes. Optionally parent the UI panel."""
+    ...
+
+def unregister() -> None:
+    """Unregister all classes (reverse order)."""
+    ...
+
+def reload() -> None:
+    """importlib.reload all child modules for hot-reload."""
+    ...
+```
+
+The `parent_panel_id` parameter allows the consuming addon to nest this submodule's panel under its own root panel. If `None`, the panel appears standalone in the sidebar.
+
+### Adding operators
+
+1. Create `ops/lks_ot_<action>.py` with the operator class
+2. Import it in `register.py`
+3. Add to the `_operator_classes` tuple
+
+```python
+# ops/lks_ot_clean_mesh.py
+import bpy
+
+class LKS_OT_CleanMesh(bpy.types.Operator):
+    bl_idname = "mesh.lks_mesh_cleanup_clean"
+    bl_label = "Clean Mesh"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        return context.area and context.area.type == 'VIEW_3D'
+
+    def execute(self, context):
+        # ... implementation ...
+        self.report({'INFO'}, "Mesh cleaned")
+        return {'FINISHED'}
+```
+
+```python
+# register.py (updated imports + tuple)
+from .ops import lks_ot_clean_mesh
+
+_operator_classes: tuple = (
+    lks_ot_clean_mesh.LKS_OT_CleanMesh,
+)
+```
+
+### Adding utility helpers
+
+For reusable logic that doesn't depend on `bpy.types.Operator`:
+
+```
+submodules/mesh_cleanup/
+├── util/
+│   ├── __init__.py
+│   └── mesh_helpers.py    # Pure functions, minimal bpy dependency
+```
+
+Operators call into `util/` — the util layer never imports operator classes.
+
+### Adding properties
+
+If the submodule needs persistent scene properties:
+
+```python
+# properties.py
+import bpy
+
+class MeshCleanupProps(bpy.types.PropertyGroup):
+    threshold: bpy.props.FloatProperty(name="Threshold", default=0.001)
+
+def register():
+    bpy.utils.register_class(MeshCleanupProps)
+    bpy.types.Scene.mesh_cleanup = bpy.props.PointerProperty(type=MeshCleanupProps)
+
+def unregister():
+    del bpy.types.Scene.mesh_cleanup
+    bpy.utils.unregister_class(MeshCleanupProps)
+```
+
+Then import and call from `register.py`:
+```python
+from . import properties as _props_module
+
+def register(parent_panel_id=None):
+    _props_module.register()
+    # ... rest of registration
+```
+
+---
+
+## Phase 4: Test in Blender
+
+### Quick manual test
+
+1. Open Blender
+2. Edit → Preferences → Add-ons → enable `lks_mesh_cleanup_dev`
+3. Open the sidebar (N panel) → look for the module's panel
+4. F3 → search for your operator label
+
+### Headless test
+
+```powershell
+cd C:\BTS_SSD\Work_Scripts\blender_addons\lks_mesh_cleanup_dev
+launch_headless_test.bat
+```
+
+### Sandbox test (verifies the built zip)
+
+```powershell
+test_sandbox_extension.bat
+```
+
+---
+
+## Phase 5: Link into a Production Addon
+
+Once the submodule works in isolation, link it into any addon that needs it.
+
+### Using the generator
+
+```powershell
+cd C:\BTS_SSD\Work_Scripts\blender_utils
+python -m addon_tools.generate link "C:\path\to\my_addon" "mesh_cleanup"
+```
+
+This creates the junction and updates `addon_config.toml`.
+
+### Manual alternative
+
+```powershell
+cd C:\path\to\my_addon\submodules
+cmd /c mklink /J mesh_cleanup "C:\BTS_SSD\Work_Scripts\blender_utils\submodules\mesh_cleanup"
+```
+
+Then add to `addon_config.toml`:
+```toml
+[submodules]
+mesh_cleanup = "mesh_cleanup"
+```
+
+### Auto-discovery
+
+The addon's `register_addon.py` **automatically discovers** submodules. It scans `submodules/` for directories with `__init__.py` that have `register`/`unregister` functions. No manual import wiring needed — just create the junction and it works.
+
+---
+
+## Phase 6: Publish
+
+### Submodule repo
+The submodule at `blender_utils/submodules/<name>/` is its own git repo. Push it to GitHub as you would any repo.
+
+### Dev addon repo
+The dev addon at `blender_addons/lks_<name>_dev/` is also its own git repo. When publishing:
+- `push_remote.bat` filters files via `.remoteignore` and pushes to GitHub
+- `release.bat` builds the extension zip from a clean clone — junctions are followed, so real submodule files end up in the zip
+- The consumer never needs junctions — the published zip is a flat, standalone package
+
+### Production addon
+When a production addon includes the submodule, the publish pipeline (`publish_to_github.py`) uses `shutil.copytree` which follows junctions. The remote clone and final zip contain real copies of the submodule files.
+
+---
+
+## Naming Conventions
+
+| Artifact | Pattern | Example |
+|----------|---------|---------|
+| Submodule directory | `<module_id>` | `mesh_cleanup` |
+| Dev addon directory | `lks_<module_id>_dev` | `lks_mesh_cleanup_dev` |
+| Operator class | `LKS_OT_<CamelAction>` | `LKS_OT_CleanMesh` |
+| Operator bl_idname | `<ctx>.lks_<module>_<action>` | `mesh.lks_mesh_cleanup_clean` |
+| Panel class | `VIEW3D_PT_<module_id>` | `VIEW3D_PT_mesh_cleanup` |
+| Operator file | `lks_ot_<action>.py` | `lks_ot_clean_mesh.py` |
+
+---
+
+## Dev Module (`dev/`) in Addons
+
+Every addon (including dev wrapper addons) has an optional `dev/` package for local-only scaffolding:
+
+- **Auto-discovered** by `register_addon.py` — if `dev/__init__.py` exists with `register()`/`unregister()`, they are called during the addon registration cycle.
+- **Excluded from published builds** — both `.remoteignore` and `blender_manifest.toml` filter out `/dev/`.
+- **Silently skipped when absent** — published builds lack `dev/`, so the `ImportError` is caught with zero runtime impact.
+
+**Use cases for dev wrapper addons:**
+- Mock keymaps that exercise the submodule's conflict detection or display
+- Test operators that invoke submodule functionality in convenient ways
+- Debug panels or diagnostic UI
+
+**Rules:**
+- `dev/` may import from the addon's public modules, but **never the reverse**.
+- Mock keymaps typically append to the addon's keymap list so existing draw functions pick them up.
+- Dev-registered classes still follow `LKS_` naming conventions.
+
+---
+
+## Two Workflow Paths
+
+Every new submodule follows one of two paths. Phases 1–4 above apply to both. The difference is where the code comes from and how integration works.
+
+### Path A: Green-Field (New Functionality)
+
+The submodule doesn't exist yet — you're authoring it from scratch.
+
+1. **Phase 1** — Define the boundary (operators, utils, properties)
+2. **Phase 2** — Scaffold submodule + dev addon
+3. **Phase 3** — Write the code directly in the submodule
+4. **Phase 4** — Test via the dev addon (headless + manual)
+5. **Phase 5** — Link into any production addon that needs it
+6. **Phase 6** — Publish
+
+No existing code to worry about — straightforward.
+
+### Path B: Abstraction (Extract from Existing Addon)
+
+The functionality already exists inside a production addon and you want to make it reusable. **Do not copy or move existing code.** Recreate the functionality cleanly in the submodule, verify it works, then swap.
+
+#### Why recreate instead of copy?
+
+- Existing code likely has imports, naming, and coupling specific to its host addon. Untangling those produces fragile, half-migrated code.
+- A clean rewrite in the submodule's structure naturally enforces the standalone contract (no parent addon imports).
+- The original addon keeps working untouched until the replacement is proven.
+
+#### Step-by-step
+
+1. **Study the existing code.** Read the operators, utilities, and properties you want to abstract. Understand what they do, their inputs/outputs, and any hidden coupling to the host addon (scene state, shared properties, import chains). Use the existing code as a *specification*, not as source material to copy.
+
+2. **Phase 1** — Define the boundary based on your study. Document which behaviors the submodule must reproduce and any intentional changes (new `bl_idname` namespace, improved API, etc.).
+
+3. **Phase 2** — Scaffold submodule + dev addon.
+
+4. **Phase 3** — Rewrite the functionality from scratch in the submodule:
+   - Use the submodule's naming conventions (`<ctx>.lks_<module>_<action>`)
+   - Structure operators, utils, and properties per the submodule contract
+   - Reference the original code to match behavior, but write clean standalone code — no residual imports from the original addon
+
+5. **Phase 4** — Test thoroughly via the dev addon. **Both gates must pass before proceeding:**
+   - **Gate 1: Headless** — `launch_headless_test.bat` passes. All operators register, basic functionality verified.
+   - **Gate 2: Manual** — User enables the dev addon in Blender and confirms the functionality works as expected (visual output, undo behavior, edge cases). **Do not proceed until the user explicitly confirms.**
+
+6. **Integrate into the production addon** (only after both gates pass):
+   - **Phase 5** — Link the submodule into the production addon
+   - Verify the production addon loads with the submodule present (both can coexist briefly — the old code and the new submodule have different `bl_idname`s)
+   - **Remove the original code** — delete the old operators, utilities, and properties that the submodule replaces
+   - Update any UI panels or menus that referenced the old `bl_idname` to use the submodule's operators
+   - If the old operators had keymaps, update the keymap references
+
+7. **Final verification** — Enable/disable the production addon in Blender. Confirm:
+   - No registration errors in the console
+   - Old operator names are gone from F3 search
+   - New submodule operators appear and work correctly
+   - The submodule's panel appears nested under the addon's root panel
+
+#### Rules for LLM agents during abstraction
+
+- **Never modify the production addon until Phase 4 is fully passed.** The original code is untouched until the submodule replacement is confirmed working.
+- **Never copy-paste code from the original addon into the submodule.** Recreate it. Reference the original for behavior, but write new code that fits the submodule structure.
+- **If the original has bugs or poor patterns, fix them in the submodule.** The rewrite is an opportunity to improve.
+- **Keep the old and new `bl_idname` values different** during the overlap period so both can coexist for testing.
+
+---
+
+## Common Pitfalls
+
+| Pitfall | Prevention |
+|---------|------------|
+| Submodule imports parent addon code | Never. Submodules are standalone. LLMs: check every `from` / `import` line. |
+| Copy-pasting code during abstraction | Never copy from source addon. Recreate from scratch using the original as behavioral reference only. |
+| Modifying production addon before submodule is tested | Never. Original code stays untouched until both headless and manual test gates pass. |
+| Junction not followed by zip builder | Verified working. `shutil.copytree` and `blender extension build` both follow junctions. |
+| Forgot `git init` | Each submodule and dev addon is its own repo. Init immediately after scaffolding. |
+| Duplicate `bl_idname` across submodules | Namespace operators: `<ctx>.lks_<module>_<action>` — include the module name. |
+| Panel doesn't appear in addon | Check that `register_addon.py` auto-discovers it. The submodule's `__init__.py` must exist and expose `register`/`unregister`. |
+| Hot reload doesn't pick up changes | The `__init__.py` deep-reload walks `sys.modules` and reloads deepest-first. Junction-loaded modules are reloaded the same way. |
+| `.gitignore` missing in submodule | Template includes one. If missing, create manually — at minimum ignore `__pycache__/`. |
+| Dev code shipped to users | Ensure `dev/` is in both `.remoteignore` and `blender_manifest.toml` `paths_exclude_pattern`. The template configures this by default. |
+| Public module imports from `dev/` | Never. Dependency is one-way: `dev/` imports from the addon, not the reverse. If `dev/` is absent, nothing should break. |
+
+---
+
+## Quick Reference: Generator Commands
+
+```powershell
+# Always run from the blender_utils/ directory:
+cd C:\BTS_SSD\Work_Scripts\blender_utils
+
+# Scaffold a standalone addon (no submodule)
+python -m addon_tools.generate addon "lks_my_tool" "LKS My Tool"
+
+# Scaffold a submodule + its dev wrapper addon
+python -m addon_tools.generate submodule "mesh_cleanup" "Mesh Cleanup"
+
+# Link an existing submodule into an existing addon
+python -m addon_tools.generate link "C:\path\to\addon" "mesh_cleanup"
+```
+
+---
+
+## File Map After Full Setup
+
+```
+Work_Scripts/
+├── blender_utils/
+│   ├── addon_tools/          # Shared build/publish/test/generate tools
+│   ├── submodules/
+│   │   ├── _template_submodule/   # Template (don't edit directly)
+│   │   └── mesh_cleanup/         # ← Your submodule source of truth
+│   │       ├── __init__.py
+│   │       ├── register.py
+│   │       ├── ui.py
+│   │       ├── ops/
+│   │       └── .gitignore
+│   └── .template_addon/          # Addon template (don't edit directly)
+│
+├── blender_addons/
+│   └── lks_mesh_cleanup_dev/     # ← Dev wrapper addon
+│       ├── __init__.py
+│       ├── register_addon.py     # Auto-discovers submodules/
+│       ├── addon_config.toml     # Lists mesh_cleanup in [submodules]
+│       ├── submodules/
+│       │   └── mesh_cleanup/     # JUNCTION → blender_utils/submodules/mesh_cleanup/
+│       └── ...
+│
+└── <Blender scripts>/addons/
+    └── lks_mesh_cleanup_dev/     # JUNCTION → blender_addons/lks_mesh_cleanup_dev/
+```
+
+Edits to `blender_utils/submodules/mesh_cleanup/` are instantly visible everywhere via the junction chain.
